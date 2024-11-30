@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #333333;
+            --border-color: #dddddd;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --border-color: #404040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            padding: 10px;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .toolbar button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: background-color 0.2s;
+        }
+
+        .toolbar button:hover {
+            background-color: var(--border-color);
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .editor-pane, .preview-pane {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .editor-pane {
+            border-right: 1px solid var(--border-color);
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+        }
+
+        .preview-pane {
+            background-color: var(--bg-secondary);
+        }
+
+        .preview-pane img {
+            max-width: 100%;
+        }
+
+        .status-bar {
+            padding: 5px 10px;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Preview Markdown Styles */
+        .preview-pane h1 { font-size: 2em; margin-bottom: 0.5em; }
+        .preview-pane h2 { font-size: 1.5em; margin-bottom: 0.5em; }
+        .preview-pane h3 { font-size: 1.3em; margin-bottom: 0.5em; }
+        .preview-pane p { margin-bottom: 1em; }
+        .preview-pane code { 
+            background-color: var(--border-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .preview-pane pre code {
+            display: block;
+            padding: 1em;
+            overflow-x: auto;
+        }
+        .preview-pane blockquote {
+            border-left: 4px solid var(--border-color);
+            padding-left: 1em;
+            margin-left: 0;
+            margin-bottom: 1em;
+        }
+        .preview-pane ul, .preview-pane ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button title="Bold" onclick="insertMarkdown('**', '**')"><i class="fas fa-bold"></i></button>
+        <button title="Italic" onclick="insertMarkdown('*', '*')"><i class="fas fa-italic"></i></button>
+        <button title="Heading 1" onclick="insertMarkdown('# ', '')"><i class="fas fa-heading"></i>1</button>
+        <button title="Heading 2" onclick="insertMarkdown('## ', '')"><i class="fas fa-heading"></i>2</button>
+        <button title="Heading 3" onclick="insertMarkdown('### ', '')"><i class="fas fa-heading"></i>3</button>
+        <button title="Link" onclick="insertMarkdown('[', '](url)')"><i class="fas fa-link"></i></button>
+        <button title="Image" onclick="insertMarkdown('![alt text](', ')')"><i class="fas fa-image"></i></button>
+        <button title="Code" onclick="insertMarkdown('`', '`')"><i class="fas fa-code"></i></button>
+        <button title="Unordered List" onclick="insertMarkdown('- ', '')"><i class="fas fa-list-ul"></i></button>
+        <button title="Ordered List" onclick="insertMarkdown('1. ', '')"><i class="fas fa-list-ol"></i></button>
+        <button title="Quote" onclick="insertMarkdown('> ', '')"><i class="fas fa-quote-right"></i></button>
+        <button title="Horizontal Rule" onclick="insertMarkdown('---\n', '')"><i class="fas fa-minus"></i></button>
+        <button title="Toggle Dark Mode" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <input type="file" id="fileInput" accept=".md,.txt" style="display: none" onchange="loadFile(this)">
+        <button title="Open File" onclick="document.getElementById('fileInput').click()"><i class="fas fa-folder-open"></i></button>
+        <button title="Save File" onclick="saveFile()"><i class="fas fa-save"></i></button>
+    </div>
+
+    <div class="container">
+        <div class="editor-pane">
+            <textarea id="editor" spellcheck="true" placeholder="Type your Markdown here..."></textarea>
+        </div>
+        <div class="preview-pane" id="preview"></div>
+    </div>
+
+    <div class="status-bar">
+        <span id="wordCount">Words: 0</span>
+        <span>Auto-saved</span>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const wordCount = document.getElementById('wordCount');
+        let timeoutId;
+
+        // Initialize
+        function init() {
+            // Load saved content and theme
+            const savedContent = localStorage.getItem('markdownContent');
+            if (savedContent) editor.value = savedContent;
+            
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+            updatePreview();
+        }
+
+        // Update preview and word count
+        function updatePreview() {
+            const content = editor.value;
+            preview.innerHTML = marked.parse(content);
+            
+            // Update word count
+            const words = content.trim().split(/\s+/).filter(word => word.length > 0);
+            wordCount.textContent = `Words: ${words.length}`;
+
+            // Save to localStorage
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                try {
+                    localStorage.setItem('markdownContent', content);
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                }
+            }, 1000);
+        }
+
+        // Insert Markdown syntax
+        function insertMarkdown(before, after) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selection = editor.value.substring(start, end);
+            const replacement = before + selection + after;
+            editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+            editor.focus();
+            if (selection.length > 0) {
+                editor.selectionStart = start;
+                editor.selectionEnd = start + replacement.length;
+            } else {
+                editor.selectionStart = editor.selectionEnd = start + before.length;
+            }
+            updatePreview();
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const newTheme = theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load file
+        function loadFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                editor.value = e.target.result;
+                updatePreview();
+            };
+            reader.readAsText(file);
+        }
+
+        // Save file
+        function saveFile() {
+            const blob = new Blob([editor.value], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Event listeners
+        editor.addEventListener('input', updatePreview);
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                insertMarkdown('    ', '');
+            }
+        });
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
