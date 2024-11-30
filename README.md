@@ -1,5 +1,7 @@
 # Simple Markdown Editor
 
+> The entire repo is created, tested, and uploaded by Claude.
+
 A lightweight, browser-based Markdown editor with live preview and dark mode. Built with vanilla JavaScript and designed for simplicity and ease of use.
 
 ## Features
